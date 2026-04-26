@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  POETRY_VERSION: "1.7.1"
+
+jobs:
+  lint:
+    name: Lint & Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Poetry
+        run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - name: Install dependencies
+        run: poetry install --no-root
+      - name: black
+        run: poetry run black --check src/ tests/
+      - name: isort
+        run: poetry run isort --check-only --profile black src/ tests/
+      - name: ruff
+        run: poetry run ruff check src/ tests/
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Poetry
+        run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - name: Install dependencies
+        run: poetry install --no-root
+      - name: mypy
+        run: poetry run mypy --strict src/
+
+  test:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Poetry
+        run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - name: Install dependencies
+        run: poetry install
+      - name: Run tests with coverage
+        run: |
+          poetry run pytest \
+            --cov=src/amethyst_analytics \
+            --cov-report=term-missing \
+            --cov-fail-under=80 \
+            -v tests/
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Poetry
+        run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - name: Install dependencies
+        run: poetry install --no-root
+      - name: bandit
+        run: poetry run bandit -r src/ -c pyproject.toml
+      - name: safety
+        run: poetry run safety check --full-report
+
+  boundary-check:
+    name: Service Boundary Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for cross-service imports
+        run: |
+          echo "Checking for forbidden cross-service imports in AmethystAnalytics..."
+          FORBIDDEN=("market_monitor" "amethyst_server")
+          FOUND=0
+          for pkg in "${FORBIDDEN[@]}"; do
+            if grep -r "from ${pkg}" src/ --include="*.py" -l 2>/dev/null; then
+              echo "ERROR: Import of '${pkg}' found — cross-service imports are forbidden."
+              FOUND=1
+            fi
+            if grep -r "import ${pkg}" src/ --include="*.py" -l 2>/dev/null; then
+              echo "ERROR: Import of '${pkg}' found — cross-service imports are forbidden."
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -ne 0 ]; then exit 1; fi
+          echo "Boundary check passed."
