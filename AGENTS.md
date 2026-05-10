@@ -12,20 +12,21 @@ AmethystAnalytics is the **Streamlit dashboard**. It is a thin UI layer — all 
 
 ## Stack
 
-| Item | Detail |
-|---|---|
-| Language | Python 3.11.x |
-| Package manager | Poetry 1.7.x |
-| Framework | Streamlit |
-| API client | `amethyst_client` — auto-generated from AmethystServer's `openapi.json` |
-| Port | 8501 |
-| Shared lib | `amethyst_core` (for config and logging only) |
+| Item            | Detail                                                                  |
+| --------------- | ----------------------------------------------------------------------- |
+| Language        | Python 3.11.x                                                           |
+| Package manager | Poetry 1.7.x                                                            |
+| Framework       | Streamlit                                                               |
+| API client      | `amethyst_client` — auto-generated from AmethystServer's `openapi.json` |
+| Port            | 8501                                                                    |
+| Shared lib      | `amethyst_core` (for config and logging only)                           |
 
 ---
 
 ## Critical Rule: Never Edit the Generated Client
 
 The `amethyst_client` package under `src/amethyst_client/` is **auto-generated** from AmethystServer's `openapi.json`. Never edit it manually. If the API contract changes:
+
 1. Regenerate `openapi.json` from AmethystServer.
 2. Re-run `AmethystInfrastructure/scripts/generate_client.sh`.
 3. Commit the regenerated client.
@@ -80,9 +81,9 @@ The `amethyst_client` package under `src/amethyst_client/` is **auto-generated**
 
 ## Service Boundaries
 
-| Direction | Protocol | Notes |
-|---|---|---|
+| Direction                          | Protocol         | Notes                           |
+| ---------------------------------- | ---------------- | ------------------------------- |
 | AmethystAnalytics → AmethystServer | REST (port 8080) | All data; polls every 5 seconds |
-| AmethystAnalytics → AmethystServer | SSE | Live tick stream |
+| AmethystAnalytics → AmethystServer | SSE              | Live tick stream                |
 
 AmethystAnalytics never connects to the database, Redis, or MarketMonitor directly.
